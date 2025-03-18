@@ -1,37 +1,86 @@
-from bs4 import BeautifulSoup
+import os
+import pdfplumber
 
-filename = input("Please enter the name of the LinkedIn HTML file:").strip()
+filename = input("Enter the pdf of the LinkedIn profile: ").strip()
 
-# Try to open the file
-try:
-    with open(filename, "r", encoding="utf-8") as file:
-        soup = BeautifulSoup(file, "html.parser")
+if not os.path.exists(filename):
+    print("Error: File not found. Please try again.")
+    exit()
 
-    # Get name
-    name_tag = soup.find("h1")
-    name = name_tag.text.strip() if name_tag else "No name found"
+# extract text from the pdf
+with pdfplumber.open(filename) as pdf:
+    text = "\n".join([page.extract_text() for page in pdf.pages if page.extract_text()])
 
-    # Get summary
-    summary_tag = soup.find(class_="summary")
-    summary = summary_tag.text.strip() if summary_tag else "No summary found"
+# Debugging purposes: first 500 characters of the extracted text
+# print(text[:500])
 
-    # Get work experience information
-    experience_section = soup.find_all("section")
-    work_experience = []
+# split the text into lines
+lines = text.split("\n")
 
-    for section in experience_section:
-        if "Experience" in section.text:
-            jobs = section.find_all("li")
-            for job in jobs:
-                job_title = job.find("h3").text.strip() if job.find("h3") else "Unknown Job Title"
-                company = job.find("p").text.strip() if job.find("p") else "Unknown Company"
-                work_experience.append(f"{job_title} at {company}")
+# initialize storage values
+name = ""
+role = ""
+about = []
+experience = []
+education = []
+section = None
 
-    print(f"Name: {name}")
-    print(f"Summary: {summary}\n")
-    print("Work Experience:")
-    for job in work_experience:
-        print(f"- {job}")
+# parse through the text
+for i, line in enumerate(lines):
+    line = line.strip()
 
-except FileNotFoundError:
-    print("Error: The file was not found. Please check the filename and try again.")
+    if i == 2:
+        name = line
+        role = lines[i + 1] if i + 1 < len(lines) else "Role Not Found"
+
+    # get section info
+    elif "About" in line:
+        section = "about"
+    elif "Experience" in line:
+        section = "experience"
+    elif "Education" in line:
+        section = "education"
+    elif "Analytics" in line:
+        section = None
+
+    elif section == "education" and ("Skills" in line or "Activites" in line or "Certificates" in line or "Courses in line"):
+        break
+
+    # store data into corresponding section
+    if section == "about":
+        about.append(line)
+    elif section == "experience":
+        experience.append(line)
+    elif section == "education":
+        education.append(line)
+
+# clean up a little
+about_text = " ".join(about).strip()
+experience_text = "\n".join(experience).strip()
+education_text = "\n".join(education).strip()
+
+output_file = filename.replace(".pdf", "_parsed.txt")
+
+# Save extracted data into separate files
+sections = {
+    "name": name,
+    "role": role,
+    "about": about_text,
+    "experience": experience_text,
+    "education": education_text
+}
+
+# write to one txt file
+with open(output_file, "w", encoding="utf-8") as file:
+    file.write("=== LinkedIn Profile Data ===\n\n")
+    file.write(f"Name: \n{name}\n")
+    file.write(f"Role: \n{role}\n\n")
+    if about_text:
+        file.write("About Section:\n")
+        file.write(about_text + "\n\n")
+    if experience_text:
+        file.write("Experience Section:\n")
+        file.write(experience_text + "\n\n")
+    if education_text:
+        file.write("Education Section:\n")
+        file.write(education_text + "\n\n")

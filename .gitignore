@@ -1,2 +1,8 @@
 # Ignore any html files (files used for testing)
 *.html
+
+# Ignore any pdf files
+*.pdf
+
+# Ignore txt files
+*.txt
