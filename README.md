@@ -8,7 +8,7 @@ The script extracts information from a **downloaded LinkedIn PDF** (downloaded f
     - The **About** Section  
     - The **Experience** Section  
     - The **Education** Section  
-The information will be extracted to a **.txt** file that has the sections labelled.  
+The information will be extracted to a **.txt** file that has the sections labeled.  
 
 # Requirements
 Make sure you have Python installed.  
